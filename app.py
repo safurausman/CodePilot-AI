@@ -11,6 +11,7 @@ from google.genai import types
 APP_NAME = "CodePilot AI"
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 API_KEY = os.getenv("GEMINI_API_KEY")
+PUBLIC_DEPLOYMENT = os.getenv("CODEPILOT_PUBLIC_MODE", "false").lower() == "true"
 MAX_UPLOAD_CHARS = 40_000
 OUTPUT_DIR = Path(__file__).with_name("codepilot_outputs")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -263,6 +264,8 @@ def tool_read_file(filename):
     except Exception as exc: return "", str(exc)
 
 def tool_run_tests(filename):
+    if PUBLIC_DEPLOYMENT:
+        return "", "Unit-test execution is disabled in the public deployment for security."
     try:
         output,code=run_unittest(filename)
         log_activity("Tool: unittest",filename,"Passed" if code==0 else "Failed")
@@ -270,6 +273,12 @@ def tool_run_tests(filename):
     except Exception as exc: return "", f"Test runner error: {exc}"
 
 def execute_agent(goal, max_steps):
+    if PUBLIC_DEPLOYMENT:
+        return (
+            "### Agent execution disabled",
+            "AI Agent tool execution is disabled in the public deployment for security.",
+            "Use the AI Coding Workspace and Knowledge Hub for the public demo."
+        )
     try:
         plan, steps, final=run_agent(goal,int(max_steps))
         log_activity("AI Agent",goal)
